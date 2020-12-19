@@ -100,22 +100,28 @@ sudo_basic_script_test(){
     fi
 
     if [ $? -eq 0 ]; then
-        tarball=$(find . -type f -iname "$VM_ID.*.tar.gz" 2>/dev/null | sort -r | head -n 1)
-        filenames=$(tar xzvf "$tarball" | sed 's|^[^/]*/||')
+        tarball=$(find . -type f -iname "$VM_ID.*.tar.gz" 2>/dev/null | sort | tail -1)
+        if [ -s "$tarball" ]; then
+            filenames=$(tar xzvf "$tarball" | sed 's|^[^/]*/||')
+        
 
-        EXPECTED_FILENAMES="$BASE_FILENAMES"
-        # If second argument is given then add those files
-        if [ "$#" -eq 2 ]; then
-            EXPECTED_FILENAMES=$(cat <(echo "$EXPECTED_FILENAMES") <(echo "$2"))
-        fi
-    
-        if ! sort_and_compare "$EXPECTED_FILENAMES" "$filenames"; then
-            echo 'FAIL'
-            overall_retcode=1
+            EXPECTED_FILENAMES="$BASE_FILENAMES"
+            # If second argument is given then add those files
+            if [ "$#" -eq 2 ]; then
+                EXPECTED_FILENAMES=$(cat <(echo "$EXPECTED_FILENAMES") <(echo "$2"))
+            fi
+        
+            if ! sort_and_compare "$EXPECTED_FILENAMES" "$filenames"; then
+                echo 'FAIL'
+                overall_retcode=1
+            else
+                echo 'PASSED'
+            fi
+            rm -r $(basename "$tarball" .tar.gz)
         else
-            echo 'PASSED'
+            echo "FAIL: couldn't find tarball"
+            overall_retcode=1
         fi
-        rm -r $(basename "$tarball" .tar.gz)
     else
         echo 'FAIL'
         overall_retcode=1
